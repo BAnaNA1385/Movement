@@ -405,11 +405,13 @@ function initGeometryTools() {
     document.getElementById("btn-anti-dive")?.addEventListener("click", () => { resetToPureStatic(); openModal('modal-anti-dive'); });
 
     document.getElementById('btn-apply-anti-dive')?.addEventListener('click', (e) => {
-        e.preventDefault(); // FIX: STOP PAGE RELOAD!
+        e.preventDefault();
 
+        const mode = (document.getElementById('anti-dive-mode') as HTMLSelectElement)?.value as 'anti-dive' | 'anti-squat';
         const wheelbase = parseFloat((document.getElementById('anti-dive-wheelbase') as HTMLInputElement)?.value || '1550') / 100;
         const cgHeight = parseFloat((document.getElementById('anti-dive-cg-height') as HTMLInputElement)?.value || '330') / 100;
         const brakeBias = parseFloat((document.getElementById('anti-dive-brake-bias') as HTMLInputElement)?.value || '0.55');
+        const driveBias = parseFloat((document.getElementById('anti-dive-drive-bias') as HTMLInputElement)?.value || '0.55');
         const targetAntiDive = parseFloat((document.getElementById('anti-dive-target') as HTMLInputElement)?.value || '50');
         const targetAntiSquat = parseFloat((document.getElementById('anti-dive-squat') as HTMLInputElement)?.value || '60');
         const zSVICDesired = parseFloat((document.getElementById('anti-dive-svic-height') as HTMLInputElement)?.value || '200') / 100; 
@@ -423,7 +425,7 @@ function initGeometryTools() {
         const contactPatchZ = ((O.position.z + E.position.z) * 0.5) - WHEEL_RADIUS;
 
         const antiDiveParams = {
-            wheelbase, cgHeight, brakeBias, targetAntiDive, targetAntiSquat, zSVICDesired, contactPatchX, contactPatchZ,
+            wheelbase, cgHeight, brakeBias, driveBias, targetAntiDive, targetAntiSquat, mode, zSVICDesired, contactPatchX, contactPatchZ,
             uprightUpperJoint: { x: E.position.x, y: E.position.y, z: E.position.z },
             uprightLowerJoint: { x: O.position.x, y: O.position.y, z: O.position.z },
             uprightTieRodJoint: { x: F.position.x, y: F.position.y, z: F.position.z },

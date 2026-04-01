@@ -8,8 +8,10 @@ export interface AntiDiveParams {
     wheelbase: number;
     cgHeight: number;
     brakeBias: number;
+    driveBias: number;
     targetAntiDive: number;
     targetAntiSquat: number;
+    mode: 'anti-dive' | 'anti-squat';
     zSVICDesired: number;
     contactPatchX: number; 
     contactPatchZ: number; 
@@ -42,14 +44,21 @@ export interface AntiDiveResult {
 }
 
 export function computeAntiDiveGeometry(params: AntiDiveParams): AntiDiveResult {
-    const antiDiveDec = params.targetAntiDive / 100;
-    
-    let svicX = -99999; // Safely handle 0% Anti-dive without throwing an Infinity error
+    let svicX = -99999;
     let svicZ = params.zSVICDesired;
     
-    if (antiDiveDec > 0) {
-        const requiredSvicSlope = (antiDiveDec * (params.cgHeight / params.wheelbase)) / params.brakeBias;
-        svicX = params.contactPatchX - ((svicZ - params.contactPatchZ) / requiredSvicSlope);
+    if (params.mode === 'anti-dive') {
+        const antiDiveDec = params.targetAntiDive / 100;
+        if (antiDiveDec > 0) {
+            const requiredSvicSlope = (antiDiveDec * (params.cgHeight / params.wheelbase)) / params.brakeBias;
+            svicX = params.contactPatchX - ((svicZ - params.contactPatchZ) / requiredSvicSlope);
+        }
+    } else {
+        const antiSquatDec = params.targetAntiSquat / 100;
+        if (antiSquatDec > 0) {
+            const requiredSvicSlope = (antiSquatDec * (params.cgHeight / params.wheelbase)) / params.driveBias;
+            svicX = params.contactPatchX - ((svicZ - params.contactPatchZ) / requiredSvicSlope);
+        }
     }
 
     const upperArmSlope = (params.uprightUpperJoint.z - svicZ) / (params.uprightUpperJoint.x - svicX);
