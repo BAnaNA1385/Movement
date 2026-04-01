@@ -208,13 +208,13 @@ function solveSuspensionWithRocker(travel:number){
         projectToPlane(I.position, staticBase.I, axis);
         projectToPlane(M.position, staticBase.M, axis);
 
-        // FIX: Upright Rigidity MUST BE LAST to prevent pushrod tearing!
+        // FIX: Upright Rigidity - use pull3D so anchor stays fixed and only H moves
         pullTogether3D(O.position, E.position, geometry.upright);
-        pullTogether3D(O.position, F.position, geometry.F_relative_to_O);
-        pullTogether3D(E.position, F.position, geometry.F_relative_to_E);
-        pullTogether3D(O.position, H.position, geometry.H_relative_to_O);
-        pullTogether3D(E.position, H.position, geometry.H_relative_to_E);
-        pullTogether3D(F.position, H.position, geometry.H_relative_to_F); 
+        pull3D(O.position, F.position, geometry.F_relative_to_O);
+        pull3D(E.position, F.position, geometry.F_relative_to_E);
+        pull3D(O.position, H.position, geometry.H_relative_to_O);
+        pull3D(E.position, H.position, geometry.H_relative_to_E);
+        pull3D(F.position, H.position, geometry.H_relative_to_F); 
 
         // Driver
         O.position.z = staticBase.O.z + travel;
@@ -741,7 +741,6 @@ function animate(){
     const dyF = F.position.y - O.position.y;
     const toe = (Math.atan2(dyF, dxF) * (180 / Math.PI)) - staticToe;
 
-    // FIX: Pass pure, raw numbers. The multi-axis chart will handle the scaling!
     speedChart.addValue("Camber Gain", camber); // Exact degrees
     speedChart.addValue("Toe Change", toe);     // Exact degrees
     speedChart.addValue("Damper compression", damperCompression * 100); // Exact millimeters
