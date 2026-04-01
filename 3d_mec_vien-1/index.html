@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Suspension Kinematics Simulator</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --bg-primary: #0f1419;
+                --bg-secondary: #1a1f26;
+                --bg-tertiary: #242b35;
+                --bg-panel: rgba(26, 31, 38, 0.95);
+                --text-primary: #e6edf3;
+                --text-secondary: #8b949e;
+                --text-muted: #6e7681;
+                --accent: #58a6ff;
+                --accent-hover: #79b8ff;
+                --accent-secondary: #3fb950;
+                --accent-warning: #d29922;
+                --accent-danger: #f85149;
+                --border: rgba(139, 148, 158, 0.3);
+                --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                --radius: 8px;
+                --radius-sm: 4px;
+            }
+
+            * { box-sizing: border-box; }
+
+            html, body {
+                margin: 0; padding: 0;
+                width: 100%; height: 100%;
+                overflow: hidden;
+                background: var(--bg-primary);
+                font-family: 'Inter', sans-serif;
+                color: var(--text-primary);
+            }
+
+            #app { width: 100%; height: 100%; }
+            canvas { display: block; }
+
+            .panel {
+                background: var(--bg-panel);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow);
+            }
+
+            .panel-title {
+                font-size: 13px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: var(--text-secondary);
+                margin: 0 0 12px 0;
+                padding-bottom: 8px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .btn {
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                padding: 8px 14px;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+                transition: all 0.15s ease;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+            }
+
+            .btn:hover { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); }
+            .btn:active { transform: scale(0.98); }
+            .btn-primary { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); }
+            .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+            .btn-success { background: var(--accent-secondary); color: var(--bg-primary); border-color: var(--accent-secondary); }
+            .btn-success:hover { background: #46c35d; border-color: #46c35d; }
+            .btn-danger { background: var(--accent-danger); color: white; border-color: var(--accent-danger); }
+            .btn-danger:hover { background: #ff6b63; border-color: #ff6b63; }
+            .btn-block { width: 100%; display: block; }
+            .btn-sm { padding: 6px 10px; font-size: 11px; }
+
+            input[type="number"] {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 11px;
+                padding: 6px 8px;
+                background: var(--bg-tertiary);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                color: var(--text-primary);
+                width: 70px;
+            }
+
+            input[type="number"]:focus { outline: none; border-color: var(--accent); }
+
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th { text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+            td { padding: 6px 4px; font-family: 'JetBrains Mono', monospace; }
+            tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+            .data-value { color: var(--accent); }
+
+            /* Layout */
+            #controls { position: absolute; top: 16px; left: 16px; z-index: 100; display: flex; gap: 8px; }
+
+            /* Tools Panel - Floating */
+            #tools-container {
+                position: fixed;
+                top: 16px; left: 16px;
+                z-index: 150;
+                width: 200px;
+            }
+
+            #tools-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 12px;
+                background: var(--bg-tertiary);
+                border-radius: var(--radius) var(--radius) 0 0;
+                cursor: move;
+                border-bottom: 1px solid var(--border);
+            }
+
+            #tools-header h3 { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+
+            #tools-body {
+                padding: 12px;
+                background: var(--bg-panel);
+                border-radius: 0 0 var(--radius) var(--radius);
+            }
+
+            .tool-section { margin-bottom: 10px; }
+            .tool-section:last-child { margin-bottom: 0; }
+            .tool-divider { height: 1px; background: var(--border); margin: 10px 0; }
+            .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+            .stat-label { color: var(--text-secondary); font-size: 11px; }
+            .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; color: var(--accent); }
+
+            /* Collapsible Side Panel */
+            #values-container {
+                position: fixed;
+                top: 16px; right: 16px;
+                width: 280px;
+                max-height: calc(100vh - 32px);
+                z-index: 100;
+                display: flex;
+                flex-direction: row;
+                overflow: hidden;
+                transition: width 0.3s ease;
+            }
+
+            #values-container.collapsed { width: 48px; }
+
+            #values-toggle {
+                width: 48px;
+                min-width: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--bg-tertiary);
+                border-radius: var(--radius) 0 0 var(--radius);
+                cursor: pointer;
+                border-right: 1px solid var(--border);
+            }
+
+            #values-toggle:hover { background: var(--bg-secondary); }
+            #values-toggle svg { width: 20px; height: 20px; fill: var(--text-secondary); transition: transform 0.3s ease; }
+            #values-container.collapsed #values-toggle svg { transform: rotate(180deg); }
+
+            #values-body {
+                flex: 1;
+                padding: 16px;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            #values-body::-webkit-scrollbar { width: 6px; }
+            #values-body::-webkit-scrollbar-track { background: var(--bg-tertiary); border-radius: 3px; }
+            #values-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+            .point-name { font-weight: 600; color: var(--text-primary); }
+            .point-desc { font-size: 9px; color: var(--text-muted); display: block; margin-top: 1px; }
+
+            /* Floating Panels */
+            .floating-panel {
+                position: fixed;
+                z-index: 200;
+                border-radius: var(--radius);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            }
+
+            .floating-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 12px;
+                background: var(--bg-tertiary);
+                border-radius: var(--radius) var(--radius) 0 0;
+                cursor: move;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .floating-header h3 { margin: 0; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+            .floating-controls { display: flex; gap: 4px; }
+
+            .floating-btn {
+                width: 24px; height: 24px;
+                border: none;
+                border-radius: var(--radius-sm);
+                background: transparent;
+                color: var(--text-secondary);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                transition: all 0.15s ease;
+            }
+
+            .floating-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+            .floating-btn.minimize:hover { background: var(--accent-warning); color: var(--bg-primary); }
+            .floating-btn.close:hover { background: var(--accent-danger); color: white; }
+
+            .floating-content { padding: 12px; background: var(--bg-panel); border-radius: 0 0 var(--radius) var(--radius); }
+            .floating-panel.minimized .floating-content { display: none; }
+            .floating-panel.minimized .floating-header { border-radius: var(--radius); }
+
+            #chart-container { bottom: 16px; right: 16px; width: 420px; }
+            #database-container { bottom: 16px; left: 300px; width: 320px; }
+
+            /* Modal */
+            .modal-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.2s ease;
+            }
+
+            .modal-overlay.active { opacity: 1; visibility: visible; }
+
+            .modal {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+                min-width: 400px;
+                max-width: 500px;
+                max-height: 80vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                transition: transform 0.2s ease, left 0s, top 0s;
+            }
+
+            .modal-overlay.active .modal { transform: scale(1); }
+            .modal.minimized .modal-body, .modal.minimized .modal-footer { display: none; }
+            .modal.minimized { min-width: auto; width: auto; }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 14px 16px;
+                border-bottom: 1px solid var(--border);
+                background: var(--bg-tertiary);
+                cursor: move;
+            }
+
+            .modal-header h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+            .modal-controls { display: flex; gap: 6px; }
+
+            .modal-btn {
+                width: 28px; height: 28px;
+                border: none;
+                border-radius: var(--radius-sm);
+                background: transparent;
+                color: var(--text-secondary);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                transition: all 0.15s ease;
+            }
+
+            .modal-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+            .modal-btn.minimize:hover { background: var(--accent-warning); color: var(--bg-primary); }
+            .modal-btn.close:hover { background: var(--accent-danger); color: white; }
+
+            .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+
+            .modal-footer {
+                padding: 12px 16px;
+                border-top: 1px solid var(--border);
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+                background: var(--bg-tertiary);
+            }
+
+            .form-group { margin-bottom: 12px; }
+            .form-group:last-child { margin-bottom: 0; }
+            .form-group label { display: block; font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px; }
+            .form-group input { width: 100%; padding: 8px 10px; font-size: 12px; }
+            .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .form-section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+            .form-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+            .form-section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin-bottom: 10px; }
+
+            .result-preview { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-top: 12px; }
+            .result-preview-title { font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+            .result-preview-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+            .result-preview-item span:first-child { color: var(--text-secondary); }
+            .result-preview-item span:last-child { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+
+            .badge { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; background: var(--bg-tertiary); border-radius: 10px; color: var(--text-secondary); }
+            .badge-accent { background: rgba(88, 166, 255, 0.2); color: var(--accent); }
+
+            #database-table { max-height: 140px; overflow-y: auto; }
+            #database-table::-webkit-scrollbar { width: 4px; }
+            #database-table::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+            #database-table::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        </style>
+    </head>
+    <body>
+        <div id="controls">
+            <button id="btn-stop-time" class="btn">Pause</button>
+            <button id="btn-stop-camera" class="btn">Lock Camera</button>
+            <button id="btn-toggle-chart" class="btn">Hide Chart</button>
+            <button id="btn-toggle-wheel" class="btn">Hide Wheel</button>
+        </div>
+        
+        <div id="tools-container" class="panel">
+            <div id="tools-header">
+                <h3>Geometry Tools</h3>
+            </div>
+            <div id="tools-body">
+                <div class="tool-section">
+                    <div style="margin-bottom: 8px;"><button id="btn-anti-dive" class="btn btn-primary btn-block">Anti-Dive</button></div>
+                    <div style="margin-bottom: 8px;"><button id="btn-optimize-toe" class="btn btn-block">Toe Opt</button></div>
+                    <div><button id="btn-calculate-actuation" class="btn btn-block">Actuation</button></div>
+                </div>
+                <div class="tool-divider"></div>
+                <div class="tool-section">
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button id="btn-save-snapshot" class="btn btn-block" style="flex: 1;">Save</button>
+                        <button id="btn-load-snapshots" class="btn btn-block" style="flex: 1;">Load</button>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Snapshots</span>
+                        <span class="stat-value"><span id="snapshot-count" class="badge badge-accent">0</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collapsible Side Panel -->
+        <div id="values-container">
+            <div id="values-toggle" title="Toggle Panel">
+                <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </div>
+            <div id="values-body">
+                <h3 class="panel-title">Suspension Geometry</h3>
+                <table id="values-table">
+                    <thead><tr><th>Point</th><th>Coordinates</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Floating Panels -->
+        <div id="chart-container" class="panel floating-panel">
+            <div class="floating-header">
+                <h3>Kinematics Analysis</h3>
+                <div class="floating-controls">
+                    <button class="floating-btn minimize" title="Minimize">&#x2212;</button>
+                </div>
+            </div>
+            <div class="floating-content">
+                <canvas id="speed-chart" width="388" height="160"></canvas>
+            </div>
+        </div>
+
+        <div id="database-container" class="panel floating-panel">
+            <div class="floating-header">
+                <h3>Data Recorder</h3>
+                <div class="floating-controls">
+                    <button class="floating-btn minimize" title="Minimize">&#x2212;</button>
+                </div>
+            </div>
+            <div class="floating-content">
+                <div class="button-group" style="margin-bottom: 10px;">
+                    <button id="btn-record-start" class="btn btn-success btn-sm">Start</button>
+                    <button id="btn-record-stop" class="btn btn-danger btn-sm" disabled>Stop</button>
+                    <button id="btn-record-clear" class="btn btn-sm">Clear</button>
+                    <button id="btn-record-download" class="btn btn-sm">Download</button>
+                </div>
+                <div class="stat-row" style="margin-bottom: 8px;">
+                    <span class="stat-label">Records</span>
+                    <span class="stat-value"><span id="record-count" class="badge badge-accent">0</span></span>
+                </div>
+                <table id="database-table">
+                    <thead><tr><th>t</th><th>Travel</th><th>Camber</th><th>Damper</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="modal-anti-dive" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>Anti-Dive Calculator</h2>
+                    <div class="modal-controls">
+                        <button class="modal-btn minimize" title="Minimize">&#x2212;</button>
+                        <button class="modal-btn close" title="Close">&#x2715;</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <div class="form-section-title">Vehicle Parameters</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Wheelbase (mm)</label><input type="number" id="anti-dive-wheelbase" value="1550"></div>
+                            <div class="form-group"><label>CG Height (mm)</label><input type="number" id="anti-dive-cg-height" value="330"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Brake Bias (0-1)</label><input type="number" step="0.01" id="anti-dive-brake-bias" value="0.55"></div>
+                            <div class="form-group"><label>SVIC Height (mm)</label><input type="number" id="anti-dive-svic-height" value="200"></div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <div class="form-section-title">Target Geometry</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Anti-Dive (%)</label><input type="number" id="anti-dive-target" value="50"></div>
+                            <div class="form-group"><label>Anti-Squat (%)</label><input type="number" id="anti-dive-squat" value="60"></div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <div class="form-section-title">Chassis Mounts</div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Y Upper (mm)</label><input type="number" id="anti-dive-y-upper" value="245"></div>
+                            <div class="form-group"><label>Y Lower (mm)</label><input type="number" id="anti-dive-y-lower" value="150"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Upper Span (mm)</label><input type="number" id="anti-dive-span-upper" value="100"></div>
+                            <div class="form-group"><label>Lower Span (mm)</label><input type="number" id="anti-dive-span-lower" value="100"></div>
+                        </div>
+                    </div>
+                    <div class="result-preview">
+                        <div class="result-preview-title">Results</div>
+                        <div class="result-preview-item"><span>SVIC X</span><span id="result-svic-x">--</span></div>
+                        <div class="result-preview-item"><span>SVIC Z</span><span id="result-svic-z">--</span></div>
+                        <div class="result-preview-item"><span>Upper Slope</span><span id="result-upper-slope">--</span></div>
+                        <div class="result-preview-item"><span>Lower Slope</span><span id="result-lower-slope">--</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" data-action="cancel">Cancel</button>
+                    <button class="btn btn-primary" id="btn-apply-anti-dive">Apply</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-optimize-toe" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>Toe Optimization</h2>
+                    <div class="modal-controls">
+                        <button class="modal-btn minimize" title="Minimize">&#x2212;</button>
+                        <button class="modal-btn close" title="Close">&#x2715;</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <div class="form-section-title">Parameters</div>
+                        <div class="form-group"><label>Heave Range (mm)</label><input type="number" id="toe-heave-range" value="30"></div>
+                    </div>
+                    <div class="result-preview">
+                        <div class="result-preview-title">Current Status</div>
+                        <div class="result-preview-item"><span>Tie Rod X</span><span id="toe-current-x">--</span></div>
+                        <div class="result-preview-item"><span>Tie Rod Z</span><span id="toe-current-z">--</span></div>
+                        <div class="result-preview-item"><span>Toe Variation</span><span id="toe-variation">--</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" data-action="cancel">Cancel</button>
+                    <button class="btn btn-primary" id="btn-run-toe-optimize">Optimize</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-actuation" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2>Actuation Calculator</h2>
+                    <div class="modal-controls">
+                        <button class="modal-btn minimize" title="Minimize">&#x2212;</button>
+                        <button class="modal-btn close" title="Close">&#x2715;</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section">
+                        <div class="form-section-title">Motion Ratio</div>
+                        <div class="form-group"><label>Desired Motion Ratio</label><input type="number" step="0.1" id="actuation-desired-mr" value="1.0"></div>
+                    </div>
+                    <div class="result-preview">
+                        <div class="result-preview-title">Current Status</div>
+                        <div class="result-preview-item"><span>Current MR</span><span id="actuation-current-mr">--</span></div>
+                        <div class="result-preview-item"><span>Pushrod X</span><span id="actuation-pushrod-x">--</span></div>
+                        <div class="result-preview-item"><span>Pushrod Z</span><span id="actuation-pushrod-z">--</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" data-action="cancel">Cancel</button>
+                    <button class="btn btn-primary" id="btn-calculate-actuation-apply">Calculate</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="app"></div>
+        <script type="module" src="/src/main.ts"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Tools panel - draggable
+                const toolsContainer = document.getElementById('tools-container');
+                const toolsHeader = document.getElementById('tools-header');
+                let isToolsDragging = false, toolsStartX, toolsStartY, toolsInitialX, toolsInitialY;
+
+                toolsHeader?.addEventListener('mousedown', (e) => {
+                    isToolsDragging = true;
+                    toolsStartX = e.clientX; toolsStartY = e.clientY;
+                    toolsInitialX = toolsContainer.offsetLeft; toolsInitialY = toolsContainer.offsetTop;
+                    toolsContainer.style.zIndex = 300;
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isToolsDragging) return;
+                    const dx = e.clientX - toolsStartX, dy = e.clientY - toolsStartY;
+                    toolsContainer.style.left = (toolsInitialX + dx) + 'px';
+                    toolsContainer.style.top = (toolsInitialY + dy) + 'px';
+                    toolsContainer.style.right = 'auto';
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isToolsDragging = false;
+                    toolsContainer.style.zIndex = 150;
+                });
+
+                // Collapsible side panel
+                const valuesContainer = document.getElementById('values-container');
+                const valuesToggle = document.getElementById('values-toggle');
+                valuesToggle?.addEventListener('click', () => {
+                    valuesContainer.classList.toggle('collapsed');
+                });
+
+                // Floating panels - drag and minimize
+                document.querySelectorAll('.floating-panel').forEach(panel => {
+                    const header = panel.querySelector('.floating-header');
+                    const minimizeBtn = panel.querySelector('.floating-btn.minimize');
+
+                    let isDragging = false, startX, startY, initialX, initialY;
+
+                    header?.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('.floating-btn')) return;
+                        isDragging = true;
+                        startX = e.clientX; startY = e.clientY;
+                        initialX = panel.offsetLeft; initialY = panel.offsetTop;
+                        panel.style.zIndex = 300;
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        const dx = e.clientX - startX, dy = e.clientY - startY;
+                        panel.style.left = (initialX + dx) + 'px';
+                        panel.style.top = (initialY + dy) + 'px';
+                        panel.style.right = 'auto'; panel.style.bottom = 'auto';
+                    });
+
+                    document.addEventListener('mouseup', () => { isDragging = false; panel.style.zIndex = 200; });
+
+                    minimizeBtn?.addEventListener('click', () => {
+                        panel.classList.toggle('minimized');
+                        minimizeBtn.innerHTML = panel.classList.contains('minimized') ? '+' : '&#x2212;';
+                    });
+                });
+
+                // Modals - drag, minimize, close
+                let activeModal = null, modalOffsetX = 0, modalOffsetY = 0;
+
+                document.querySelectorAll('.modal').forEach(modal => {
+                    const header = modal.querySelector('.modal-header');
+                    const minimizeBtn = modal.querySelector('.modal-btn.minimize');
+                    const closeBtn = modal.querySelector('.modal-btn.close');
+
+                    header?.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('.modal-btn')) return;
+                        activeModal = modal;
+                        const rect = modal.getBoundingClientRect();
+                        modalOffsetX = e.clientX - rect.left;
+                        modalOffsetY = e.clientY - rect.top;
+                        modal.style.left = rect.left + 'px';
+                        modal.style.top = rect.top + 'px';
+                        modal.style.marginLeft = '0';
+                        modal.style.marginTop = '0';
+                    });
+
+                    minimizeBtn?.addEventListener('click', () => {
+                        modal.classList.toggle('minimized');
+                        minimizeBtn.innerHTML = modal.classList.contains('minimized') ? '&#x25BC;' : '&#x2212;';
+                    });
+
+                    closeBtn?.addEventListener('click', () => {
+                        modal.closest('.modal-overlay').classList.remove('active');
+                    });
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!activeModal) return;
+                    activeModal.style.left = (e.clientX - modalOffsetX) + 'px';
+                    activeModal.style.top = (e.clientY - modalOffsetY) + 'px';
+                });
+
+                document.addEventListener('mouseup', () => { activeModal = null; });
+
+                document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                    overlay.addEventListener('click', (e) => {
+                        if (e.target === overlay) overlay.classList.remove('active');
+                    });
+                });
+
+                document.querySelectorAll('[data-action="cancel"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        btn.closest('.modal-overlay').classList.remove('active');
+                    });
+                });
+
+                // Chart toggle
+                const chartPanel = document.getElementById('chart-container');
+                document.getElementById('btn-toggle-chart')?.addEventListener('click', () => {
+                    chartPanel.style.display = chartPanel.style.display === 'none' ? '' : 'none';
+                });
+            });
+        </script>
+    </body>
+</html>
