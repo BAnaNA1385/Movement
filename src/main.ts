@@ -414,7 +414,6 @@ function initGeometryTools() {
         const driveBias = parseFloat((document.getElementById('anti-dive-drive-bias') as HTMLInputElement)?.value || '0.55');
         const targetAntiDive = parseFloat((document.getElementById('anti-dive-target') as HTMLInputElement)?.value || '50');
         const targetAntiSquat = parseFloat((document.getElementById('anti-dive-squat') as HTMLInputElement)?.value || '60');
-        const zSVICDesired = parseFloat((document.getElementById('anti-dive-svic-height') as HTMLInputElement)?.value || '200') / 100; 
         
         const yChassisUpperMM = parseFloat((document.getElementById('anti-dive-y-upper') as HTMLInputElement)?.value || '245');
         const yChassisLowerMM = parseFloat((document.getElementById('anti-dive-y-lower') as HTMLInputElement)?.value || '150');
@@ -425,7 +424,10 @@ function initGeometryTools() {
         const contactPatchZ = ((O.position.z + E.position.z) * 0.5) - WHEEL_RADIUS;
 
         const antiDiveParams = {
-            wheelbase, cgHeight, brakeBias, driveBias, targetAntiDive, targetAntiSquat, mode, zSVICDesired, contactPatchX, contactPatchZ,
+            wheelbase, cgHeight, brakeBias, driveBias, targetAntiDive, targetAntiSquat, mode, 
+            rcHeight: frontView.rollCenter.y,
+            distanceRCtoIC: frontView.distRCtoIC,
+            contactPatchX, contactPatchZ,
             uprightUpperJoint: { x: E.position.x, y: E.position.y, z: E.position.z },
             uprightLowerJoint: { x: O.position.x, y: O.position.y, z: O.position.z },
             uprightTieRodJoint: { x: F.position.x, y: F.position.y, z: F.position.z },

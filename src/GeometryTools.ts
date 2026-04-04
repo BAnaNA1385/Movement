@@ -7,12 +7,13 @@ export interface Point3D {
 export interface AntiDiveParams {
     wheelbase: number;
     cgHeight: number;
+    rcHeight: number;
     brakeBias: number;
     driveBias: number;
     targetAntiDive: number;
     targetAntiSquat: number;
     mode: 'anti-dive' | 'anti-squat';
-    zSVICDesired: number;
+    distanceRCtoIC: number;
     contactPatchX: number; 
     contactPatchZ: number; 
     uprightUpperJoint: Point3D;
@@ -44,8 +45,10 @@ export interface AntiDiveResult {
 }
 
 export function computeAntiDiveGeometry(params: AntiDiveParams): AntiDiveResult {
+    const svicZ = params.rcHeight + (params.rcHeight - params.contactPatchZ) / 
+        Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
+    
     let svicX = -99999;
-    let svicZ = params.zSVICDesired;
     
     if (params.mode === 'anti-dive') {
         const antiDiveDec = params.targetAntiDive / 100;
