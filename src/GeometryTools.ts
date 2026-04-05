@@ -54,13 +54,13 @@ export function computeAntiDiveGeometry(params: AntiDiveParams): AntiDiveResult 
         const antiDiveDec = params.targetAntiDive / 100;
         if (antiDiveDec > 0) {
             const requiredSvicSlope = (antiDiveDec * (params.cgHeight / params.wheelbase)) / params.brakeBias;
-            svicX = (params.rcHeight - params.contactPatchZ) / Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
+            svicX = (params.contactPatchX) / Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
         }
     } else {
         const antiSquatDec = params.targetAntiSquat / 100;
         if (antiSquatDec > 0) {
             const requiredSvicSlope = (antiSquatDec * (params.cgHeight / params.wheelbase)) / params.driveBias;
-            svicX = (params.rcHeight - params.contactPatchZ) / Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
+            svicX = (params.contactPatchX) / Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
         }
     }
 
