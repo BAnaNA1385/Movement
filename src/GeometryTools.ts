@@ -7,6 +7,7 @@ export interface Point3D {
 export interface AntiDiveParams {
     wheelbase: number;
     cgHeight: number;
+    desiredZSVIC: number;
     rcHeight: number;
     brakeBias: number;
     driveBias: number;
@@ -19,9 +20,8 @@ export interface AntiDiveParams {
     uprightUpperJoint: Point3D;
     uprightLowerJoint: Point3D;
     uprightTieRodJoint: Point3D; 
-    zChassisUpperRef: number;
-    zChassisLowerRef: number;
-    zChassisTieRodRef: number; 
+    xChassisUpperRef: number;
+    xChassisLowerRef: number;
     yChassisUpper: number;
     yChassisLower: number;
     spanUpperFront: number;
@@ -49,33 +49,42 @@ export function computeAntiDiveGeometry(params: AntiDiveParams): AntiDiveResult 
         Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
     
     let svicX = -99999;
-    
+    let requiredSvicSlope = -99999;
     if (params.mode === 'anti-dive') {
         const antiDiveDec = params.targetAntiDive / 100;
         if (antiDiveDec > 0) {
-            const requiredSvicSlope = (antiDiveDec * (params.cgHeight / params.wheelbase)) / params.brakeBias;
+            requiredSvicSlope = (antiDiveDec * (params.cgHeight / params.wheelbase)) / params.brakeBias;
             svicX = (params.contactPatchX) / Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
         }
     } else {
         const antiSquatDec = params.targetAntiSquat / 100;
         if (antiSquatDec > 0) {
-            const requiredSvicSlope = (antiSquatDec * (params.cgHeight / params.wheelbase)) / params.driveBias;
+            requiredSvicSlope = (antiSquatDec * (params.cgHeight / params.wheelbase)) / params.driveBias;
             svicX = (params.contactPatchX) / Math.sqrt(params.contactPatchX ** 2 + (params.contactPatchZ - params.rcHeight) ** 2) * params.distanceRCtoIC;
         }
     }
 
-    const upperArmSlope = (params.uprightUpperJoint.z - svicZ) / (params.uprightUpperJoint.x - svicX);
-    const lowerArmSlope = (params.uprightLowerJoint.z - svicZ) / (params.uprightLowerJoint.x - svicX);
+    const upperArmSlope_front = (params.uprightUpperJoint.z - svicZ) / (params.uprightUpperJoint.x - svicX);
+    const lowerArmSlope_front = (params.uprightLowerJoint.z - svicZ) / (params.uprightLowerJoint.x - svicX);
+
+    const upperZreference = upperArmSlope_front * (params.xChassisUpperRef - params.uprightUpperJoint.x) + params.uprightUpperJoint.z;
+    const lowerZreference = lowerArmSlope_front * (params.xChassisLowerRef - params.uprightLowerJoint.x) + params.uprightLowerJoint.z;
+
+    const ZSVIC = params.desiredZSVIC
+    const XSVIC = ZSVIC/ requiredSvicSlope
+
+    const upperArmSlope = (ZSVIC - upperZreference) / (XSVIC-params.uprightUpperJoint.x);
+    const lowerArmSlope = (ZSVIC - lowerZreference) / (XSVIC-params.uprightLowerJoint.x);
 
     const xUpperFront = params.spanUpperFront;
     const xUpperRear = -params.spanUpperRear;
     const xLowerFront = params.spanLowerFront;
     const xLowerRear = -params.spanLowerRear;
 
-    const zUpperFront = params.uprightUpperJoint.z + upperArmSlope * (xUpperFront - params.uprightUpperJoint.x);
-    const zUpperRear = params.uprightUpperJoint.z + upperArmSlope * (xUpperRear - params.uprightUpperJoint.x);
-    const zLowerFront = params.uprightLowerJoint.z + lowerArmSlope * (xLowerFront - params.uprightLowerJoint.x);
-    const zLowerRear = params.uprightLowerJoint.z + lowerArmSlope * (xLowerRear - params.uprightLowerJoint.x);
+    const zUpperFront = svicZ + upperArmSlope * (xUpperFront - svicX);
+    const zUpperRear = svicZ + upperArmSlope * (xUpperRear - svicX);
+    const zLowerFront = svicZ + lowerArmSlope * (xLowerFront - svicX);
+    const zLowerRear = svicZ + lowerArmSlope * (xLowerRear - svicX);
 
     const tieRodSlope = (params.uprightTieRodJoint.z - svicZ) / (params.uprightTieRodJoint.x - svicX);
     const tieRodInnerZ = params.uprightTieRodJoint.z + tieRodSlope * (params.tieRodInnerX - params.uprightTieRodJoint.x);

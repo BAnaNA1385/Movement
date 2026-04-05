@@ -417,6 +417,10 @@ function initGeometryTools() {
         
         const rcHeight = parseFloat((document.getElementById('anti-dive-rc-height') as HTMLInputElement)?.value || '100') / 100;
         const distanceRCtoIC = parseFloat((document.getElementById('anti-dive-rc-ic-dist') as HTMLInputElement)?.value || '50') / 100;
+        const desiredZSVIC = parseFloat((document.getElementById('anti-dive-svic-height') as HTMLInputElement)?.value || '200') / 100;
+        
+        const xChassisUpperRef = parseFloat((document.getElementById('anti-dive-x-upper-ref') as HTMLInputElement)?.value || '0') / 100;
+        const xChassisLowerRef = parseFloat((document.getElementById('anti-dive-x-lower-ref') as HTMLInputElement)?.value || '0') / 100;
         
         const yChassisUpperMM = parseFloat((document.getElementById('anti-dive-y-upper') as HTMLInputElement)?.value || '245');
         const yChassisLowerMM = parseFloat((document.getElementById('anti-dive-y-lower') as HTMLInputElement)?.value || '150');
@@ -430,11 +434,13 @@ function initGeometryTools() {
             wheelbase, cgHeight, brakeBias, driveBias, targetAntiDive, targetAntiSquat, mode, 
             rcHeight,
             distanceRCtoIC,
+            desiredZSVIC,
             contactPatchX, contactPatchZ,
             uprightUpperJoint: { x: E.position.x, y: E.position.y, z: E.position.z },
             uprightLowerJoint: { x: O.position.x, y: O.position.y, z: O.position.z },
             uprightTieRodJoint: { x: F.position.x, y: F.position.y, z: F.position.z },
-            zChassisUpperRef: E.position.z, zChassisLowerRef: O.position.z, zChassisTieRodRef: F.position.z,
+            xChassisUpperRef,
+            xChassisLowerRef,
             yChassisUpper: yChassisUpperMM / 100, yChassisLower: yChassisLowerMM / 100,
             spanUpperFront: spanUpperMM / 100, spanUpperRear: spanUpperMM / 100,
             spanLowerFront: spanLowerMM / 100, spanLowerRear: spanLowerMM / 100,
