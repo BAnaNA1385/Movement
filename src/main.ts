@@ -208,13 +208,13 @@ function solveSuspensionWithRocker(travel:number){
         projectToPlane(I.position, staticBase.I, axis);
         projectToPlane(M.position, staticBase.M, axis);
 
-        // FIX: Upright Rigidity - use pull3D so anchor stays fixed and only H moves
+        // FIX: Upright Rigidity MUST BE LAST to prevent pushrod tearing!
         pullTogether3D(O.position, E.position, geometry.upright);
-        pull3D(O.position, F.position, geometry.F_relative_to_O);
-        pull3D(E.position, F.position, geometry.F_relative_to_E);
-        pull3D(O.position, H.position, geometry.H_relative_to_O);
-        pull3D(E.position, H.position, geometry.H_relative_to_E);
-        pull3D(F.position, H.position, geometry.H_relative_to_F); 
+        pullTogether3D(O.position, F.position, geometry.F_relative_to_O);
+        pullTogether3D(E.position, F.position, geometry.F_relative_to_E);
+        pullTogether3D(O.position, H.position, geometry.H_relative_to_O);
+        pullTogether3D(E.position, H.position, geometry.H_relative_to_E);
+        pullTogether3D(F.position, H.position, geometry.H_relative_to_F); 
 
         // Driver
         O.position.z = staticBase.O.z + travel;
@@ -405,15 +405,15 @@ function initGeometryTools() {
     document.getElementById("btn-anti-dive")?.addEventListener("click", () => { resetToPureStatic(); openModal('modal-anti-dive'); });
 
     document.getElementById('btn-apply-anti-dive')?.addEventListener('click', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // FIX: STOP PAGE RELOAD!
 
-        const mode = (document.getElementById('anti-dive-mode') as HTMLSelectElement)?.value as 'anti-dive' | 'anti-squat';
         const wheelbase = parseFloat((document.getElementById('anti-dive-wheelbase') as HTMLInputElement)?.value || '1550') / 100;
         const cgHeight = parseFloat((document.getElementById('anti-dive-cg-height') as HTMLInputElement)?.value || '330') / 100;
         const brakeBias = parseFloat((document.getElementById('anti-dive-brake-bias') as HTMLInputElement)?.value || '0.55');
         const driveBias = parseFloat((document.getElementById('anti-dive-drive-bias') as HTMLInputElement)?.value || '0.55');
         const targetAntiDive = parseFloat((document.getElementById('anti-dive-target') as HTMLInputElement)?.value || '50');
         const targetAntiSquat = parseFloat((document.getElementById('anti-dive-squat') as HTMLInputElement)?.value || '60');
+        const mode = (document.getElementById('anti-dive-mode') as HTMLSelectElement)?.value as 'anti-dive' | 'anti-squat';
         
         const rcHeight = parseFloat((document.getElementById('anti-dive-rc-height') as HTMLInputElement)?.value || '100') / 100;
         const distanceRCtoIC = parseFloat((document.getElementById('anti-dive-rc-ic-dist') as HTMLInputElement)?.value || '50') / 100;
@@ -431,20 +431,19 @@ function initGeometryTools() {
         const contactPatchZ = ((O.position.z + E.position.z) * 0.5) - WHEEL_RADIUS;
 
         const antiDiveParams = {
-            wheelbase, cgHeight, brakeBias, driveBias, targetAntiDive, targetAntiSquat, mode, 
-            rcHeight,
-            distanceRCtoIC,
-            desiredZSVIC,
+            wheelbase, cgHeight, brakeBias, driveBias, targetAntiDive, targetAntiSquat, mode,
+            zSVICDesired: desiredZSVIC,
             contactPatchX, contactPatchZ,
             uprightUpperJoint: { x: E.position.x, y: E.position.y, z: E.position.z },
             uprightLowerJoint: { x: O.position.x, y: O.position.y, z: O.position.z },
             uprightTieRodJoint: { x: F.position.x, y: F.position.y, z: F.position.z },
-            xChassisUpperRef,
-            xChassisLowerRef,
+            zChassisUpperRef: E.position.z, zChassisLowerRef: O.position.z, zChassisTieRodRef: F.position.z,
+            xChassisUpperRef, xChassisLowerRef,
             yChassisUpper: yChassisUpperMM / 100, yChassisLower: yChassisLowerMM / 100,
             spanUpperFront: spanUpperMM / 100, spanUpperRear: spanUpperMM / 100,
             spanLowerFront: spanLowerMM / 100, spanLowerRear: spanLowerMM / 100,
-            tieRodInnerX: T.position.x 
+            tieRodInnerX: T.position.x,
+            rcHeight, distanceRCtoIC
         };
 
         const result = computeAntiDiveGeometry(antiDiveParams);
@@ -752,6 +751,7 @@ function animate(){
     const dyF = F.position.y - O.position.y;
     const toe = (Math.atan2(dyF, dxF) * (180 / Math.PI)) - staticToe;
 
+    // FIX: Pass pure, raw numbers. The multi-axis chart will handle the scaling!
     speedChart.addValue("Camber Gain", camber); // Exact degrees
     speedChart.addValue("Toe Change", toe);     // Exact degrees
     speedChart.addValue("Damper compression", damperCompression * 100); // Exact millimeters
